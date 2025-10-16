@@ -2,14 +2,15 @@ use bevy::{
     app::Plugin,
     asset::{Asset, Assets},
     ecs::system::{Commands, ResMut},
-    math::{Vec4, primitives::Rectangle},
+    math::{Vec3, Vec4, primitives::Rectangle},
     mesh::{Mesh, Mesh2d},
-    pbr::{Material, MaterialPlugin},
     reflect::TypePath,
     render::render_resource::AsBindGroup,
-    sprite_render::{Material2d, MeshMaterial2d},
+    sprite_render::{Material2d, Material2dPlugin, MeshMaterial2d},
     state::state::OnEnter,
+    transform::components::Transform,
 };
+use tracing::warn;
 
 use crate::screens::Screen;
 
@@ -21,7 +22,7 @@ pub struct TerrainPlugin;
 impl Plugin for TerrainPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.add_systems(OnEnter(Screen::Gameplay), debug_setup)
-            .add_plugins(MaterialPlugin::<TerrainMaterial>::default());
+            .add_plugins(Material2dPlugin::<TerrainMaterial>::default());
     }
 }
 
@@ -33,7 +34,12 @@ fn debug_setup(
     let mesh = meshes.add(Rectangle::new(100.0, 100.0));
     let material = materials.add(TerrainMaterial { time: Vec4::ZERO });
 
-    commands.spawn((Mesh2d(mesh), MeshMaterial2d(material)));
+    commands.spawn((
+        Mesh2d(mesh),
+        MeshMaterial2d(material),
+        Transform::from_translation(Vec3::ZERO),
+    ));
+    warn!("spawn terrain");
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Clone)]
@@ -43,8 +49,6 @@ struct TerrainMaterial {
 }
 
 const FRAGMENT_SHADER_ASSET_PATH: &str = "shaders/terrain.wesl";
-
-impl Material for TerrainMaterial {}
 
 impl Material2d for TerrainMaterial {
     fn vertex_shader() -> bevy::shader::ShaderRef {

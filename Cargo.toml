@@ -20,7 +20,7 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 
 [features]
 # Default to a native dev build.
-default = ["dev_native"]
+default = ["dev_native", "bevy/shader_format_wesl"]
 dev = [
     # Improve compile times for dev builds by linking Bevy as a dynamic library.
     "bevy/dynamic_linking",
