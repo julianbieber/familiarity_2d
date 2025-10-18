@@ -2295,6 +2295,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "getrandom",
+ "noiz",
  "rand",
  "tracing",
 ]
@@ -3382,6 +3383,17 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+]
+
+[[package]]
+name = "noiz"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b823103555ff41d5aefbc6e07440c671fdf63c79696eccd38ef725e976fd9d30"
+dependencies = [
+ "bevy_math",
+ "bevy_reflect",
+ "serde",
 ]
 
 [[package]]
@@ -4615,7 +4627,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a43bddab41f8626c7bdaab872bbba75f8df5847b516d77c569c746e2ae5eb746"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
