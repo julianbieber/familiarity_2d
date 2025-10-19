@@ -60,7 +60,7 @@ fn debug_setup(
 
 fn generate_chunk() -> TerrainChunk {
     let mut t = TerrainChunk::zero();
-    let mut noise = Noise::<PerCell<OrthoGrid, Random<UNorm, f32>>>::default();
+    let mut noise = Noise::<PerCell<OrthoGrid, Random<SNorm, f32>>>::default();
     noise.set_seed(123);
     noise.set_frequency(3.0);
 
