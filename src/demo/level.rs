@@ -45,7 +45,7 @@ pub fn spawn_level(
             player(400.0, &player_assets, &mut texture_atlas_layouts),
             (
                 Name::new("Gameplay Music"),
-                music(level_assets.music.clone())
+                // music(level_assets.music.clone())
             )
         ],
     ));

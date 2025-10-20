@@ -53,25 +53,30 @@ fn distance_to_closest_neighbor(uv: vec2<f32>) -> f32 {
     let x = quantize(uv.x, UV_STEPS) - uv.x;
     let y = quantize(uv.y, UV_STEPS) - uv.y;
 
-    return length(v2(x,y));
+    return length(v2(x, y));
 }
 
 fn water_color(uv: vec2<f32>, height: f32) -> vec4<f32> {
 
-        var c = rgb(99, 115, 229);
-        let depth_modifier = 1.0 + height;
+    var c = rgb(99, 115, 229);
+    let depth_modifier = 1.0 + height;
 
-        let s = surrounding_heights(uv);
+    let s = surrounding_heights(uv);
         // if s.x > 0.0 || s.y > 0.0 || s.z > 0.0 || s.a > 0.0 { // I should merge the colors independently of the specifc color functions
-            let d = distance_to_closest_neighbor(uv);
-            return vec4<f32>(1.0) * (d*128.0);
+    let d = distance_to_closest_neighbor(uv);
+    return vec4<f32>(1.0) * (d * 128.0);
             // return vec4<f32>(1.0) * d;
         // }
 
         // c *= depth_modifier;
 
         // return vec4<f32>(c, 1.0);
-    }
+}
+
+
+fn merge_colors() -> f32 {
+    return 0.0;
+}
 
 
 
