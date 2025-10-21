@@ -56,15 +56,12 @@ fn distance_to_closest_neighbor(uv: vec2<f32>) -> f32 {
     return length(v2(x, y));
 }
 
-fn water_color(uv: vec2<f32>, height: f32) -> vec4<f32> {
+fn water_color(border_dist: f32, height: f32) -> vec3<f32> {
 
     var c = rgb(99, 115, 229);
     let depth_modifier = 1.0 + height;
 
-    let s = surrounding_heights(uv);
-        // if s.x > 0.0 || s.y > 0.0 || s.z > 0.0 || s.a > 0.0 { // I should merge the colors independently of the specifc color functions
-    let d = distance_to_closest_neighbor(uv);
-    return vec4<f32>(1.0) * (d * 128.0);
+    return c ;
             // return vec4<f32>(1.0) * d;
         // }
 
@@ -73,9 +70,24 @@ fn water_color(uv: vec2<f32>, height: f32) -> vec4<f32> {
         // return vec4<f32>(c, 1.0);
 }
 
+fn ground_color(border_dist: f32, height: f32) -> vec3<f32> {
+    return rgb(121, 115, 45);
 
-fn merge_colors() -> f32 {
-    return 0.0;
+}
+
+
+fn merge_colors(water_color: vec3<f32>, ground_color: vec3<f32>, shore_dist: f32) -> vec3<f32> {
+    let m = clamp(shore_dist, 0.0, 0.2);
+
+    return mix(water_color, ground_color, m);
+}
+
+fn shore_dist(uv: vec2<f32>, h: f32) -> f32 {
+
+    let s = surrounding_heights(uv);
+
+
+    return 1.0;
 }
 
 
@@ -85,9 +97,13 @@ fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
     let height = h(mesh.uv);
+    let border_dist = distance_to_closest_neighbor(mesh.uv);
 
-    if height < 0.0 {
-        return water_color(mesh.uv, height);
-    }
-    return vec4<f32>(height, 0.0, 0.0, 1.0);
+    let water = water_color(border_dist, height);
+
+    let ground = ground_color(border_dist, height);
+
+    let c = merge_colors(water, ground, shore_dist(mesh.uv));
+
+    return vec4<f32>(c, 1.0);
 }
