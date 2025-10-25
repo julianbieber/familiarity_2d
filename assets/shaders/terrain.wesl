@@ -22,6 +22,13 @@ fn quantize(v: f32, n: f32) -> f32 {
     return (floor(v * n) + 0.5) / n;
 }
 
+fn quantize_min(v: f32, n: f32) -> f32 {
+    return (floor(v * n)) / n;
+}
+fn quantize_max(v: f32, n: f32) -> f32 {
+    return (ceil(v * n)) / n;
+}
+
 fn v2(x: f32, y: f32) -> vec2<f32> {
     return vec2<f32>(x, y);
 }
@@ -49,6 +56,38 @@ fn surrounding_heights(uv: vec2<f32>) -> vec4<f32> {
     );
 }
 
+// this should interpolate between the closest 4 pixels
+fn bilinear_height(uv: vec2<f32>) -> f32 {
+    let qx = quantize(uv.x, UV_STEPS);
+    let qy = quantize(uv.y, UV_STEPS);
+
+    var surrounding_x: f32;
+    if qx < 0.5 {
+        surrounding_x = quantize(uv.x - 1.0 / UV_STEPS, UV_STEPS);
+    } else {
+        surrounding_x = quantize(uv.x + 1.0 / UV_STEPS, UV_STEPS);
+    }
+
+    var surrounding_y: f32;
+    if qy < 0.5 {
+        surrounding_y = quantize(uv.y - 1.0 / UV_STEPS, UV_STEPS);
+    } else {
+        surrounding_y = quantize(uv.y + 1.0 / UV_STEPS, UV_STEPS);
+    }
+
+    let my_h = h(v2(qx, qy));
+
+    let surrounding_hx = h(v2(surrounding_x, qy));
+    let surrounding_hy = h(v2(qx, surrounding_y));
+    let surrounding_h = h(v2(surrounding_x, surrounding_y));
+
+    let fraction_x = uv.x % UV_STEPS;
+    let fraction_y = uv.y % UV_STEPS;
+
+
+    return 0.0;
+}
+
 fn distance_to_closest_neighbor(uv: vec2<f32>) -> f32 {
     let x = quantize(uv.x, UV_STEPS) - uv.x;
     let y = quantize(uv.y, UV_STEPS) - uv.y;
@@ -72,7 +111,6 @@ fn water_color(border_dist: f32, height: f32) -> vec3<f32> {
 
 fn ground_color(border_dist: f32, height: f32) -> vec3<f32> {
     return rgb(121, 115, 45);
-
 }
 
 
@@ -96,14 +134,22 @@ fn shore_dist(uv: vec2<f32>, h: f32) -> f32 {
 fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
-    let height = h(mesh.uv);
+    // How to decide on a color?
+    // I have the bilinear height and the block height
+    // The block height decides the main type of terrain, maybe later combined with a separate texture for biome data.
+    // For merging the blocks, I can take a look at the block height of the closest neighboring block.
+    // Additionally I need the distance to the closest block for the specific pixel.
+    // So I need a function similar to the bilinear_height, returning height and distance.
+    // I can use the bilinear height to guide the transition
+    let block_height = h(mesh.uv);
     let border_dist = distance_to_closest_neighbor(mesh.uv);
 
-    let water = water_color(border_dist, height);
+    let water = water_color(border_dist, block_height);
 
-    let ground = ground_color(border_dist, height);
+    let ground = ground_color(border_dist, block_height);
 
-    let c = merge_colors(water, ground, shore_dist(mesh.uv));
+    // let c = merge_colors(water, ground, );
+    let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * bilinear_height(mesh.uv);
 
     return vec4<f32>(c, 1.0);
 }

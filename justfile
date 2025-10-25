@@ -21,18 +21,18 @@ default:
 
 # Run the game in release mode
 run:
-    bevy run --release
+    bevy run --release --locked
 
 # Run with dynamic linking for faster compile times
 run-dev:
-    bevy run --features bevy/dynamic_linking
+    bevy run --locked
 
 # Web Development
 # ===============
 
 # Run the game in web browser
 run-web:
-    bevy run web --open --release
+    bevy run web --open --release --locked
 
 # Code Quality
 # ============
