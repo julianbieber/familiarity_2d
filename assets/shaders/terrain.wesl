@@ -117,7 +117,7 @@ fn ground_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec3<f32> {
 
 
 fn merge_colors(water_color: vec4<f32>, ground_color: vec3<f32> ) -> vec3<f32> {
-    return mix(water_color.xyz, ground_color, water_color.a);
+    return mix(ground_color, water_color.xyz, water_color.a);
 }
 
 fn shore_dist(uv: vec2<f32>, h: f32) -> f32 {
