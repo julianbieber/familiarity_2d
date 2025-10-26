@@ -1,5 +1,7 @@
 use bevy::image::ImageSampler;
 use bevy::math::prelude::*;
+use bevy::mesh::Mesh2d;
+use bevy::transform::components::Transform;
 use bevy::{
     app::{Plugin, Update},
     asset::{Asset, Assets, Handle, RenderAssetUsages},
@@ -8,14 +10,13 @@ use bevy::{
         system::{Commands, Query, Res, ResMut},
     },
     image::Image,
-    math::{Vec3, Vec4, primitives::Rectangle},
-    mesh::{Mesh, Mesh2d},
+    math::{Vec4, primitives::Rectangle},
+    mesh::Mesh,
     reflect::TypePath,
     render::render_resource::{AsBindGroup, Extent3d},
     sprite_render::{Material2d, Material2dPlugin, MeshMaterial2d},
     state::{condition::in_state, state::OnEnter},
     time::Time,
-    transform::components::Transform,
 };
 use noiz::prelude::*;
 use tracing::warn;
@@ -42,7 +43,7 @@ fn debug_setup(
     mut images: ResMut<Assets<Image>>,
 ) {
     let mesh = meshes.add(Rectangle::new(4096.0 * 0.25, 4096.0 * 0.25));
-    let terrain = generate_debug_chunk();
+    let terrain = generate_chunk();
 
     let height_tex = images.add(terrain.as_tex());
     let material = materials.add(TerrainMaterial {
@@ -95,7 +96,7 @@ pub struct TerrainChunk {
 }
 
 impl TerrainChunk {
-    const SQUARE: usize = 8;
+    const SQUARE: usize = 128;
 
     pub fn zero() -> TerrainChunk {
         let heights = vec![0.0; TerrainChunk::SQUARE * TerrainChunk::SQUARE];

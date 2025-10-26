@@ -12,7 +12,7 @@ struct CustomMaterial {
 @group(2) @binding(1) var height_texture: texture_2d<f32>;
 @group(2) @binding(2) var height_texture_sampler: sampler;
 
-const UV_STEPS = 8.0;
+const UV_STEPS = 128.0;
 
 fn rgb(r: i32, g: i32, b: i32) -> vec3<f32> {
     return vec3<f32>(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
@@ -58,58 +58,51 @@ fn surrounding_heights(uv: vec2<f32>) -> vec4<f32> {
 
 // this should interpolate between the closest 4 pixels
 fn bilinear_height(uv: vec2<f32>) -> f32 {
-    let qx = quantize(uv.x, UV_STEPS);
-    let qy = quantize(uv.y, UV_STEPS);
+    let texel = 1.0 / UV_STEPS;
 
-    var fraction_x = fract((uv.x * UV_STEPS)) * 0.5;
-    var fraction_y = fract((uv.y * UV_STEPS)) * 0.5;
-    var surrounding_x: f32;
-    if (uv.x * UV_STEPS) % 1.0 < 0.5 {
-        surrounding_x = qx - 1.0/UV_STEPS;
-        fraction_x += 0.5;
-    } else {
-        surrounding_x = qx + 1.0/UV_STEPS;
-    }
+    let uv_tex = uv * UV_STEPS;
 
-    var surrounding_y: f32;
-    if (uv.y * UV_STEPS) % 1.0 < 0.5 {
-        surrounding_y = quantize(uv.y - 1.0 / UV_STEPS, UV_STEPS);
-    } else {
-        surrounding_y = quantize(uv.y + 1.0 / UV_STEPS, UV_STEPS);
-        fraction_y += 0.5;
-    }
+    let i0 = floor(uv_tex);
+    let i1 = i0 + vec2<f32>(1.0, 1.0);
 
-    // return surrounding_x + surrounding_y;
+    let tx = fract(uv_tex.x);
+    let ty = fract(uv_tex.y);
 
-    let my_h = h(v2(qx, qy));
+    let uv00 = (i0) * texel;
+    let uv10 = vec2<f32>(i1.x, i0.y) * texel;
+    let uv01 = vec2<f32>(i0.x, i1.y) * texel;
+    let uv11 = (i1) * texel;
 
-    let surrounding_hx = h(v2(surrounding_x, qy));
-    let surrounding_hy = h(v2(qx, surrounding_y));
-    let surrounding_h = h(v2(surrounding_x, surrounding_y));
+    let h00 = h(uv00);
+    let h10 = h(uv10);
+    let h01 = h(uv01);
+    let h11 = h(uv11);
 
+    let hx0 = mix(h00, h10, tx);
+    let hx1 = mix(h01, h11, tx);
+    let hxy = mix(hx0, hx1, ty);
 
-    let interpolated_x = mix(surrounding_h, surrounding_hx, fraction_x);
-    let interpolated_y = mix(my_h, surrounding_hy, fraction_y);
-
-    let interpolated_final = mix(interpolated_x, interpolated_y, fraction_x);
-
-
-    return interpolated_x;
+    return hxy;
 }
 
-fn distance_to_closest_neighbor(uv: vec2<f32>) -> f32 {
+// returning (distance, height)
+fn distance_to_closest_neighbor(uv: vec2<f32>) -> vec2<f32> {
     let x = quantize(uv.x, UV_STEPS) - uv.x;
     let y = quantize(uv.y, UV_STEPS) - uv.y;
 
-    return length(v2(x, y));
+
+    return v2(length(v2(x, y)), 1.0);
 }
 
-fn water_color(border_dist: f32, height: f32) -> vec3<f32> {
+// height between -1.0..1.0
+fn water_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec4<f32> {
 
     var c = rgb(99, 115, 229);
     let depth_modifier = 1.0 + height;
 
-    return c ;
+    let saturation = clamp(-height, 0.0, 1.0);
+
+    return vec4<f32>(c, saturation) ;
             // return vec4<f32>(1.0) * d;
         // }
 
@@ -118,15 +111,13 @@ fn water_color(border_dist: f32, height: f32) -> vec3<f32> {
         // return vec4<f32>(c, 1.0);
 }
 
-fn ground_color(border_dist: f32, height: f32) -> vec3<f32> {
+fn ground_color(block_height: f32, height: f32, uv: vec2<f32>) -> vec3<f32> {
     return rgb(121, 115, 45);
 }
 
 
-fn merge_colors(water_color: vec3<f32>, ground_color: vec3<f32>, shore_dist: f32) -> vec3<f32> {
-    let m = clamp(shore_dist, 0.0, 0.2);
-
-    return mix(water_color, ground_color, m);
+fn merge_colors(water_color: vec4<f32>, ground_color: vec3<f32> ) -> vec3<f32> {
+    return mix(water_color.xyz, ground_color, water_color.a);
 }
 
 fn shore_dist(uv: vec2<f32>, h: f32) -> f32 {
@@ -151,14 +142,14 @@ fn fragment(
     // So I need a function similar to the bilinear_height, returning height and distance.
     // I can use the bilinear height to guide the transition
     let block_height = h(mesh.uv);
-    let border_dist = distance_to_closest_neighbor(mesh.uv);
+    let local_height = bilinear_height(mesh.uv);
+    // let border_dist = distance_to_closest_neighbor(mesh.uv);
 
-    let water = water_color(border_dist, block_height);
+    let water = water_color(block_height, local_height, mesh.uv);
 
-    let ground = ground_color(border_dist, block_height);
+    let ground = ground_color(block_height, local_height, mesh.uv);
 
-    // let c = merge_colors(water, ground, );
-    let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * abs(bilinear_height(mesh.uv));
+    let c = merge_colors(water, ground);
     // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
 
     return vec4<f32>(c, 1.0);
