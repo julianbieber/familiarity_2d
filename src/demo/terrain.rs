@@ -41,8 +41,8 @@ fn debug_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let mesh = meshes.add(Rectangle::new(4096.0, 4096.0));
-    let terrain = generate_chunk();
+    let mesh = meshes.add(Rectangle::new(4096.0 * 0.25, 4096.0 * 0.25));
+    let terrain = generate_debug_chunk();
 
     let height_tex = images.add(terrain.as_tex());
     let material = materials.add(TerrainMaterial {
@@ -75,12 +75,27 @@ fn generate_chunk() -> TerrainChunk {
     t
 }
 
+fn generate_debug_chunk() -> TerrainChunk {
+    let mut t = TerrainChunk::zero();
+    let mut noise = Noise::<PerCell<OrthoGrid, Random<SNorm, f32>>>::default();
+    noise.set_seed(123);
+    noise.set_frequency(3.0);
+
+    for y in 0..TerrainChunk::SQUARE {
+        for x in 0..TerrainChunk::SQUARE {
+            t.set(x, y, ((x + y) as f32) / (TerrainChunk::SQUARE * 2) as f32);
+        }
+    }
+
+    t
+}
+
 pub struct TerrainChunk {
     heights: Vec<f32>,
 }
 
 impl TerrainChunk {
-    const SQUARE: usize = 64 * 2;
+    const SQUARE: usize = 8;
 
     pub fn zero() -> TerrainChunk {
         let heights = vec![0.0; TerrainChunk::SQUARE * TerrainChunk::SQUARE];

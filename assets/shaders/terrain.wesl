@@ -12,7 +12,7 @@ struct CustomMaterial {
 @group(2) @binding(1) var height_texture: texture_2d<f32>;
 @group(2) @binding(2) var height_texture_sampler: sampler;
 
-const UV_STEPS = 128.0;
+const UV_STEPS = 8.0;
 
 fn rgb(r: i32, g: i32, b: i32) -> vec3<f32> {
     return vec3<f32>(f32(r) / 255.0, f32(g) / 255.0, f32(b) / 255.0);
@@ -61,19 +61,25 @@ fn bilinear_height(uv: vec2<f32>) -> f32 {
     let qx = quantize(uv.x, UV_STEPS);
     let qy = quantize(uv.y, UV_STEPS);
 
+    var fraction_x = fract((uv.x * UV_STEPS)) * 0.5;
+    var fraction_y = fract((uv.y * UV_STEPS)) * 0.5;
     var surrounding_x: f32;
-    if qx < 0.5 {
-        surrounding_x = quantize(uv.x - 1.0 / UV_STEPS, UV_STEPS);
+    if (uv.x * UV_STEPS) % 1.0 < 0.5 {
+        surrounding_x = qx - 1.0/UV_STEPS;
+        fraction_x += 0.5;
     } else {
-        surrounding_x = quantize(uv.x + 1.0 / UV_STEPS, UV_STEPS);
+        surrounding_x = qx + 1.0/UV_STEPS;
     }
 
     var surrounding_y: f32;
-    if qy < 0.5 {
+    if (uv.y * UV_STEPS) % 1.0 < 0.5 {
         surrounding_y = quantize(uv.y - 1.0 / UV_STEPS, UV_STEPS);
     } else {
         surrounding_y = quantize(uv.y + 1.0 / UV_STEPS, UV_STEPS);
+        fraction_y += 0.5;
     }
+
+    // return surrounding_x + surrounding_y;
 
     let my_h = h(v2(qx, qy));
 
@@ -81,11 +87,14 @@ fn bilinear_height(uv: vec2<f32>) -> f32 {
     let surrounding_hy = h(v2(qx, surrounding_y));
     let surrounding_h = h(v2(surrounding_x, surrounding_y));
 
-    let fraction_x = uv.x % UV_STEPS;
-    let fraction_y = uv.y % UV_STEPS;
+
+    let interpolated_x = mix(surrounding_h, surrounding_hx, fraction_x);
+    let interpolated_y = mix(my_h, surrounding_hy, fraction_y);
+
+    let interpolated_final = mix(interpolated_x, interpolated_y, fraction_x);
 
 
-    return 0.0;
+    return interpolated_x;
 }
 
 fn distance_to_closest_neighbor(uv: vec2<f32>) -> f32 {
@@ -149,7 +158,8 @@ fn fragment(
     let ground = ground_color(border_dist, block_height);
 
     // let c = merge_colors(water, ground, );
-    let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * bilinear_height(mesh.uv);
+    let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * abs(bilinear_height(mesh.uv));
+    // let c: vec3<f32> = vec3<f32>(0.2, .05, 0.1) * block_height;
 
     return vec4<f32>(c, 1.0);
 }
